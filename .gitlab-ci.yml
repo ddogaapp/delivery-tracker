@@ -22,7 +22,6 @@ deploy_job:
     # 1. SSH 환경 설정
     - echo "Loading SSH key and setting up SSH config..."
     - apt-get update -qy && apt-get install -y openssl openssh-client
-    - corepack enable
     - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY_DEV" | base64 -d > ~/.ssh/brainhc_ltc.pem
     - chmod 600 ~/.ssh/brainhc_ltc.pem
