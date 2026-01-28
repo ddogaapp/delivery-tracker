@@ -58,6 +58,11 @@ sudo usermod -aG docker ubuntu
 docker ps
 ```
 
+## API 목록
+### 1. 송장 추적 조회: https://api.ddoga.co.kr:4436/track/{carrier}/{trackerNumber}
+### 2. 송장 최종 상태 조회: https://api.ddoga.co.kr:4436/track/last/{carrier}/{trackerNumber}
+### 3. 지원 택배사 목록 조회: http://localhost:4000/track/carriers
+
 ## 🚚 지원 택배사
 
 현재 다음을 포함한 **33개**의 국내외 택배사를 지원합니다. ([지원 택배사 전체목록](https://api.ddoga.co.kr:4436/track/carriers))
