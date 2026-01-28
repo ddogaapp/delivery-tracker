@@ -17,6 +17,7 @@ deploy_job:
   variables:
     EC2_HOST: "REDACTED_IP"
     EC2_USER: "ubuntu"
+    DOCKER_BUILDKIT: "1"
     
   script:
     # 1. SSH 환경 설정
@@ -38,7 +39,8 @@ deploy_job:
     - echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
 
     - echo "Building image... $IMAGE_TAG"
-    - docker build -t $IMAGE_TAG .
+    # - docker build -t $IMAGE_TAG .
+    - docker build --platform linux/arm64 -t $IMAGE_TAG .
 
     - echo "Pushing image..."
     - docker push $IMAGE_TAG
