@@ -9,6 +9,31 @@ variables:
   DOCKER_TLS_CERTDIR: ""
   DOCKER_BUILDKIT: "1"
 
+sync-with-github:
+  stage: sync
+  image: bitnami/git:latest
+  script:
+    - git config --global user.email "gitlab-ci-token@gitlab.example.com"
+    - git config --global user.name "GitLab CI Bot"
+
+    # 인증 및 원격 저장소 설정
+    - git remote set-url origin http://oauth2:${GIT_PUSH_TOKEN}@gitlab.hecton.co.kr:8090/${CI_PROJECT_PATH}.git
+    - git remote add upstream https://github.com/jongyeolPark/delivery-tracker.git
+
+    - git fetch upstream
+    
+    # [권장] 로컬 master를 원격(origin) master와 강제로 똑같이 맞추고 시작 (꼬임 방지)
+    - git checkout -B master origin/master
+
+    # 병합 (충돌 시 upstream 내용 채택)
+    - git merge upstream/main --allow-unrelated-histories -X theirs -m "Sync from GitHub Upstream"
+
+    # [수정됨] 강제 푸시 실행
+    - git push origin master
+  
+  only:
+    - schedules
+
 deploy_job:
   stage: deploy
   image: docker:20.10.16
