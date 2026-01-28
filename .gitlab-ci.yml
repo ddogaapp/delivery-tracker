@@ -1,27 +1,47 @@
 stages:
   - sync
+  - deploy
 
-sync-with-github:
-  stage: sync
-  image: bitnami/git:latest
-  script:
-    - git config --global user.email "gitlab-ci-token@gitlab.example.com"
-    - git config --global user.name "GitLab CI Bot"
-
-    # 인증 및 원격 저장소 설정
-    - git remote set-url origin http://oauth2:${GIT_PUSH_TOKEN}@gitlab.hecton.co.kr:8090/${CI_PROJECT_PATH}.git
-    - git remote add upstream https://github.com/jongyeolPark/delivery-tracker.git
-
-    - git fetch upstream
-    
-    # [권장] 로컬 master를 원격(origin) master와 강제로 똑같이 맞추고 시작 (꼬임 방지)
-    - git checkout -B master origin/master
-
-    # 병합 (충돌 시 upstream 내용 채택)
-    - git merge upstream/main --allow-unrelated-histories -X theirs -m "Sync from GitHub Upstream"
-
-    # [수정됨] 강제 푸시 실행
-    - git push origin master
+deploy_job:
+  stage: deploy
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
   
+  script:
+    # 1. 환경 설정
+    - apk update && apk add --no-cache openssh-client
+    
+    # [수정됨] 폴더 생성 먼저 수행 (필수)
+    - mkdir -p ~/.ssh 
+    
+    # [수정됨] base64 디코딩 제거 (변수에 원본 텍스트가 들어있다면 제거해야 함)
+    - echo "$SSH_PRIVATE_KEY_DEV" > ~/.ssh/id_rsa
+    
+    - chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+
+    # 2. 빌드 및 푸시
+    - echo "Build & Push Start..."
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE_TAG -t $LATEST_TAG .
+    - docker push $IMAGE_TAG
+    - docker push $LATEST_TAG
+
+    # 3. 배포
+    - echo "Deploying to EC2..."
+    - ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "
+        docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
+        docker pull $LATEST_TAG &&
+        docker stop my-app-container || true &&
+        docker rm my-app-container || true &&
+        docker run -d --name my-app-container -p 80:3000 $LATEST_TAG
+      "
+    - echo "Deployment Successful!"    
+
+  variables:
+    EC2_HOST: "REDACTED_IP"
+    EC2_USER: "ubuntu"
+    
   only:
-    - schedules
+    - master # 브랜치명이 main인지 master인지 꼭 확인하세요!
