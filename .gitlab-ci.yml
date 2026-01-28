@@ -3,28 +3,31 @@ stages:
 
 sync-with-github:
   stage: sync
-  image: bitnami/git:latest # git이 설치된 도커 이미지
+  image: bitnami/git:latest
   script:
-    # 1. Git 유저 설정 (커밋 기록용)
+    # 1. Git 유저 설정
     - git config --global user.email "gitlab-ci-token@gitlab.example.com"
     - git config --global user.name "GitLab CI Bot"
 
-    # 2. 현재 저장소(GitLab)에 대한 인증 정보 재설정 (Push를 위해 토큰 사용)
-    # ${CI_SERVER_HOST}는 당신의 GitLab 도메인, ${CI_PROJECT_PATH}는 프로젝트 경로입니다.
+    # 2. 내 저장소(GitLab/origin) 인증 설정 (master 브랜치에 푸시하기 위해)
     - git remote set-url origin https://oauth2:${GIT_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
 
-    # 3. GitHub 원본 저장소(Upstream) 추가
-    # [수정 필요] 아래 주소를 동기화할 GitHub Public 저장소 주소로 바꾸세요.
+    # 3. 원본 저장소(GitHub/upstream) 추가
     - git remote add upstream https://github.com/jongyeolPark/delivery-tracker.git
 
-    # 4. 소스 가져오기 및 병합
+    # 4. 원본 소스 가져오기 (GitHub의 모든 브랜치 정보 가져옴)
     - git fetch upstream
-    - git checkout main
+
+    # 5. [중요] 내 작업 브랜치(master)로 전환
+    # CI 환경은 보통 Detached HEAD 상태일 수 있으므로 명시적으로 master 체크아웃
+    - git checkout master
+    - git pull origin master # 혹시 모를 로컬/원격 차이 방지
+
+    # 6. [중요] 원본의 main 브랜치를 -> 내 master 브랜치에 병합
     - git merge upstream/main --allow-unrelated-histories -m "Sync from GitHub Upstream"
 
-    # 5. GitLab으로 Push
-    - git push origin main
+    # 7. 내 저장소(master)로 결과 전송
+    - git push origin master
   
-  # 이 작업은 스케줄러에 의해서만 실행되도록 설정 (일반 커밋시 실행 방지)
   only:
     - schedules
