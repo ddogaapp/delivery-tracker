@@ -20,6 +20,32 @@ const serverRootLogger: winston.Logger = coreLogger.rootLogger.child({
   module: "server",
 });
 
+const USABLE_KEYS = { "REDACTED": "REDACTED" }
+
+const authMiddleware = (
+  req: express.Request,
+  res: express.Response,
+  next: express.NextFunction
+) => {
+  const apiKey = req.headers["ddoga-tracker-api-key"];
+  const apiSecret = req.headers["ddoga-tracker-api-secret"];
+
+  if (
+    typeof apiKey !== "string" ||
+    typeof apiSecret !== "string" ||
+    (USABLE_KEYS as Record<string, string>)[apiKey] !== apiSecret
+  ) {
+    res.status(401).json({
+      extensions: {
+        code: "UNAUTHENTICATED",
+      },
+      message: "Invalid or missing API Key",
+    });
+    return;
+  }
+  next();
+};
+
 const server = new ApolloServer<{ appContext: AppContext }>({
   typeDefs,
   resolvers: resolvers.resolvers,
@@ -86,6 +112,15 @@ async function main(): Promise<void> {
 
   app.use(cors());
   app.use(json());
+
+  app.get("/health-check", async (req, res) => {
+    res.status(200).json({
+      message: "OK",
+    });
+  });
+
+  // 인증 미들웨어 적용 (이후의 라우트들은 인증이 필요함)
+  app.use(authMiddleware);
 
   // 송장 추적 조회
   app.get("/track/:carrierId/:trackingNumber", async (req, res) => {
@@ -188,12 +223,6 @@ async function main(): Promise<void> {
       .filter(c => c.carrierId.startsWith("kr"))
       .map(c => c.carrierId);
     res.json(carriers);
-  });
-
-  app.get("/health-check", async (req, res) => {
-    res.status(200).json({
-      message: "OK",
-    });
   });
 
   // GraphQL endpoint
