@@ -6,6 +6,7 @@ variables:
   IMAGE_TAG: jjongg1101/dddoga-tracker:$CI_COMMIT_SHORT_SHA
   DOCKER_USER: "jjongg1101"
   DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: "" # TLS 비활성화 (2375 포트 연결 필수)
   
 deploy_job:
   stage: deploy
@@ -13,16 +14,15 @@ deploy_job:
   services:
     - docker:20.10.16-dind
   
+  variables:
+    EC2_HOST: "REDACTED_IP"
+    EC2_USER: "ubuntu"
+    
   script:
-    # 1. 환경 설정
+    # 1. SSH 환경 설정
     - apk update && apk add --no-cache openssh-client
-    
-    # [수정됨] 폴더 생성 먼저 수행 (필수)
     - mkdir -p ~/.ssh 
-    
-    # [수정됨] base64 디코딩 제거 (변수에 원본 텍스트가 들어있다면 제거해야 함)
     - echo "$SSH_PRIVATE_KEY_DEV" > ~/.ssh/id_rsa
-    
     - chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
 
@@ -36,20 +36,16 @@ deploy_job:
     - echo "Pushing image..."
     - docker push $IMAGE_TAG
 
-    # 3. 배포
+    # 3. 배포 (수정 포인트: 포트 4000 사용, IMAGE_TAG 사용)
     - echo "Deploying to EC2..."
     - ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "
-        docker login -u $DOCKER_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
-        docker pull $LATEST_TAG &&
+        echo '$DOCKER_TOKEN' | docker login -u '$DOCKER_USER' --password-stdin &&
+        docker pull $IMAGE_TAG &&
         docker stop ddoga-container || true &&
         docker rm ddoga-container || true &&
-        docker run -d --name ddoga-container -p 80:3000 $LATEST_TAG
+        docker run -d --name ddoga-container -p 80:4000 $IMAGE_TAG
       "
     - echo "Deployment Successful!"    
 
-  variables:
-    EC2_HOST: "REDACTED_IP"
-    EC2_USER: "ubuntu"
-    
   only:
     - master # 브랜치명이 main인지 master인지 꼭 확인하세요!
