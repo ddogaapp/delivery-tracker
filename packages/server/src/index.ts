@@ -87,6 +87,12 @@ async function main(): Promise<void> {
   app.use(cors());
   app.use(json());
 
+  app.get("/health-check", async (req, res) => {
+    res.status(200).json({
+      message: "OK",
+    });
+  })
+
   // REST API endpoint
   app.get("/track/:carrierId/:trackingNumber", async (req, res) => {
     const { carrierId, trackingNumber } = req.params;
