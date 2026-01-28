@@ -2,6 +2,10 @@ stages:
   - sync
   - deploy
 
+variables:
+  IMAGE_TAG: jjongg1101/dddoga-tracker:$CI_COMMIT_SHORT_SHA
+  DOCKER_USER: "jjongg1101"
+  
 deploy_job:
   stage: deploy
   image: docker:20.10.16
@@ -22,20 +26,23 @@ deploy_job:
     - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
 
     # 2. 빌드 및 푸시
-    - echo "Build & Push Start..."
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -t $IMAGE_TAG -t $LATEST_TAG .
+    - echo "Docker Hub Login..."
+    - echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
+
+    - echo "Building image..."
+    - docker build -t $IMAGE_TAG .
+
+    - echo "Pushing image..."
     - docker push $IMAGE_TAG
-    - docker push $LATEST_TAG
 
     # 3. 배포
     - echo "Deploying to EC2..."
     - ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "
-        docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
+        docker login -u $DOCKER_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY &&
         docker pull $LATEST_TAG &&
-        docker stop my-app-container || true &&
-        docker rm my-app-container || true &&
-        docker run -d --name my-app-container -p 80:3000 $LATEST_TAG
+        docker stop ddoga-container || true &&
+        docker rm ddoga-container || true &&
+        docker run -d --name ddoga-container -p 80:3000 $LATEST_TAG
       "
     - echo "Deployment Successful!"    
 
