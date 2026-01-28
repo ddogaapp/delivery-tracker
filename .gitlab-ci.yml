@@ -30,7 +30,7 @@ deploy_job:
     - echo "Docker Hub Login..."
     - echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
 
-    - echo "Building image..."
+    - echo "Building image... $IMAGE_TAG"
     - docker build -t $IMAGE_TAG .
 
     - echo "Pushing image..."
