@@ -1,0 +1,11 @@
+{
+  "dockerComposeFile": "docker-compose.yml",
+  "service": "devcontainer",
+  "workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
+  "forwardPorts": [4000],
+  "portsAttributes": {
+    "4000": {
+      "label": "api-server"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+stages:
+  - sync
+
+sync-with-github:
+  stage: sync
+  image: bitnami/git:latest # git이 설치된 도커 이미지
+  script:
+    # 1. Git 유저 설정 (커밋 기록용)
+    - git config --global user.email "gitlab-ci-token@gitlab.example.com"
+    - git config --global user.name "GitLab CI Bot"
+
+    # 2. 현재 저장소(GitLab)에 대한 인증 정보 재설정 (Push를 위해 토큰 사용)
+    # ${CI_SERVER_HOST}는 당신의 GitLab 도메인, ${CI_PROJECT_PATH}는 프로젝트 경로입니다.
+    - git remote set-url origin https://oauth2:${GIT_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
+
+    # 3. GitHub 원본 저장소(Upstream) 추가
+    # [수정 필요] 아래 주소를 동기화할 GitHub Public 저장소 주소로 바꾸세요.
+    - git remote add upstream https://github.com/jongyeolPark/delivery-tracker.git
+
+    # 4. 소스 가져오기 및 병합
+    - git fetch upstream
+    - git checkout main
+    - git merge upstream/main --allow-unrelated-histories -m "Sync from GitHub Upstream"
+
+    # 5. GitLab으로 Push
+    - git push origin main
+  
+  # 이 작업은 스케줄러에 의해서만 실행되도록 설정 (일반 커밋시 실행 방지)
+  only:
+    - schedules
