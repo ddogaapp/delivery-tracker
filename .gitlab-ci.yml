@@ -31,7 +31,8 @@ deploy_job:
     - echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
 
     - echo "Building image... $IMAGE_TAG"
-    - docker build -t $IMAGE_TAG .
+    - echo "Building image... $CI_REGISTRY_IMAGE"
+    - docker build -t $CI_REGISTRY_IMAGE .
 
     - echo "Pushing image..."
     - docker push $IMAGE_TAG
