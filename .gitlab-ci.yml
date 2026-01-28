@@ -25,7 +25,7 @@ deploy_job:
     - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY_DEV" | base64 -d > ~/.ssh/brainhc_ltc.pem
     - chmod 600 ~/.ssh/brainhc_ltc.pem
-    - printf "Host app-server\n  HostName ${APP_SERVER_IP}\n  User ${APP_SERVER_USER}\n  IdentityFile ~/.ssh/brainhc_ltc.pem\n  StrictHostKeyChecking no\n" > ~/.ssh/config
+    - printf "Host app-server\n  HostName ${EC2_HOST}\n  User ${EC2_USER}\n  IdentityFile ~/.ssh/brainhc_ltc.pem\n  StrictHostKeyChecking no\n" > ~/.ssh/config
 
     # - apk update && apk add --no-cache openssh-client
     # - mkdir -p ~/.ssh 
