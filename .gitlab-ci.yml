@@ -5,28 +5,22 @@ sync-with-github:
   stage: sync
   image: bitnami/git:latest
   script:
-    # 1. Git 유저 설정
     - git config --global user.email "gitlab-ci-token@gitlab.example.com"
     - git config --global user.name "GitLab CI Bot"
 
-    # 2. 내 저장소(GitLab/origin) 인증 설정 (master 브랜치에 푸시하기 위해)
-    - git remote set-url origin https://oauth2:${GIT_PUSH_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git
-
-    # 3. 원본 저장소(GitHub/upstream) 추가
+    # 인증 및 원격 저장소 설정
+    - git remote set-url origin http://oauth2:${GIT_PUSH_TOKEN}@gitlab.hecton.co.kr:8090/${CI_PROJECT_PATH}.git
     - git remote add upstream https://github.com/jongyeolPark/delivery-tracker.git
 
-    # 4. 원본 소스 가져오기 (GitHub의 모든 브랜치 정보 가져옴)
     - git fetch upstream
+    
+    # [권장] 로컬 master를 원격(origin) master와 강제로 똑같이 맞추고 시작 (꼬임 방지)
+    - git checkout -B master origin/master
 
-    # 5. [중요] 내 작업 브랜치(master)로 전환
-    # CI 환경은 보통 Detached HEAD 상태일 수 있으므로 명시적으로 master 체크아웃
-    - git checkout master
-    - git pull origin master # 혹시 모를 로컬/원격 차이 방지
+    # 병합 (충돌 시 upstream 내용 채택)
+    - git merge upstream/main --allow-unrelated-histories -X theirs -m "Sync from GitHub Upstream"
 
-    # 6. [중요] 원본의 main 브랜치를 -> 내 master 브랜치에 병합
-    - git merge upstream/main --allow-unrelated-histories -m "Sync from GitHub Upstream"
-
-    # 7. 내 저장소(master)로 결과 전송
+    # [수정됨] 강제 푸시 실행
     - git push origin master
   
   only:
