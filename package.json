@@ -5,11 +5,7 @@
   },
   "scripts": {
     "build": "pnpm --filter '@delivery-tracker/server' build-with-deps",
-    "pm2": "pm2 start ecosystem.config.js",
-    "prod:stop": "pm2 stop ecosystem.config.js",
-    "prod:restart": "pm2 restart ecosystem.config.js",
-    "prod:status": "pm2 status",
-    "prod:logs": "pm2 logs"
+    "dev": "pnpm --filter @delivery-tracker/server dev"
   },
   "devDependencies": {
     "@types/node": "^18.16.0",

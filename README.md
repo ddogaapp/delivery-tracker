@@ -1,39 +1,91 @@
-# Delivery Tracker
+# 📦 Delivery Tracker (택배 송장 추적 서비스)
 
-Delivery and Shipping Tracking Service
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Node.js Version](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg)](https://nodejs.org/)
+[![pnpm](https://img.shields.io/badge/maintained%20with-pnpm-cc00ff.svg)](https://pnpm.io/)
+[![pipeline status](http://gitlab.hecton.co.kr:8090/ddoga/delivery-tracker/badges/master/pipeline.svg)](http://gitlab.hecton.co.kr:8090/ddoga/delivery-tracker/-/commits/master)
 
-## Usage
-### Cloud (Managed Service)
-Visit : https://tracker.delivery/docs/try
+다양한 택배사의 배송 상태를 통합하여 추적할 수 있는 GraphQL API 서비스입니다. 국내외 주요 택배사를 지원하며, 확장이 용이한 구조로 설계되었습니다.
 
-### Self-Hosted
-#### Setting Up the Development Environment
-Delivery Tracker can be set up in local development environments and is also readily available for setup through GitHub Codespaces.
+## ✨ 주요 특징
 
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/shlee322/delivery-tracker)
+- **통합 추적**: 국내외 30개 이상의 택배사 지원.
+- **GraphQL API**: 현대적인 API 인터페이스를 통한 효율적인 데이터 쿼리.
+- **Monorepo 구조**: `pnpm workspace`를 활용한 모듈화된 프로젝트 관리.
 
-Follow the instructions below for GitHub Codespaces:
+## 🏗️ 프로젝트 구조
 
-1. Click the "Open in GitHub Codespaces" button above to create a new Codespace.
-2. Once in your Codespace terminal, enter `pnpm install` to install the necessary dependencies.
-3. In GitHub Codespaces, navigate to the "Run and Debug" section from the sidebar and then click the "Run" button for "@delivery-tracker/server" to launch the server.
-4. The service URL can be accessed via the Ports panel at the bottom of the GitHub Codespaces interface.
+프로젝트는 다음과 같은 패키지로 구성되어 있습니다:
 
-#### Deploying Self-Hosted Services
-See `Dockerfile`
+- [`packages/core`](./packages/core): 각 택배사별 스크래핑 로직 및 핵심 비즈니스 로직.
+- [`packages/api`](./packages/api): GraphQL 스키마 및 리졸버 정의.
+- [`packages/server`](./packages/server): Apollo Server 기반의 GraphQL HTTP 서버.
 
-## Additional Information
-### License
-- Please read the `LICENSE` file.
+## 🚀 시작하기
 
-### Contact
-- Please contact `contact@tracker.delivery` for more information.
+### 사전 준비 사항
 
-### Project Structure
-- packages/api : GraphQL API
-- packages/core : Scraper code
-- packages/cli : A Command Line Interface (CLI) tool that uses the execute function from packages/api.
-- packages/http : A self-hosted GraphQL HTTP server that uses the execute function from packages/api.
+- Node.js >= 18
+- pnpm >= 8
 
-### Request additional carriers
-See https://tracker.delivery/request-additional-carrier
+### 설치 및 빌드
+
+```bash
+# 의존성 설치
+pnpm install
+
+# 전체 프로젝트 빌드
+pnpm build
+```
+
+### 개발 서버 실행
+
+```bash
+# 서버 패키지 실행 (기본 포트: 4000)
+pnpm dev
+```
+서버가 실행되면 `http://localhost:4000`에서 GraphQL Playground를 통해 API를 테스트할 수 있습니다.
+
+### 운영 서버 설정
+
+```bash
+# aws 초기 스크립트 docker 설치
+sudo apt-get update
+sudo apt-get install -y docker.io
+sudo usermod -aG docker ubuntu
+
+# 프로세스 확인
+docker ps
+```
+
+## 🚚 지원 택배사
+
+현재 다음을 포함한 **33개**의 국내외 택배사를 지원합니다. ([지원 택배사 전체목록](https://api.ddoga.co.kr:4436/track/carriers))
+
+### 🇰🇷 국내 택배
+- CJ대한통운 (`kr.cjlogistics`)
+- 우체국택배 (`kr.epost`)
+- 한진택배 (`kr.hanjin`)
+- 롯데택배 (`kr.lotte`)
+- 로젠택배 (`kr.logen`)
+- 쿠팡 로지스틱스 (`kr.coupangls`)
+- CU 편의점택배 (`kr.cvsnet`)
+- 대신택배 (`kr.daesin`)
+- 경동택배 (`kr.kdexp`)
+- 합동택배 (`kr.ltl`)
+- 일양로지스 (`kr.ilyanglogis`)
+- 천일택배 (`kr.chunilps`)
+- ... 그 외 다수
+
+### 해외 택배
+- DHL (`us.dhl`)
+- FedEx (`us.fedex`)
+- USPS (`us.usps`)
+- ... 그 외 다수
+
+## 💡 추가 정보
+- **API 문서**: [tracker.delivery/docs](https://tracker.delivery/docs)
+
+## 📄 라이선스
+
+이 프로젝트는 [MIT License](./LICENSE)를 따릅니다.
