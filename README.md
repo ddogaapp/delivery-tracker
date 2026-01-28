@@ -61,7 +61,7 @@ docker ps
 ## API 목록
 ### 1. 송장 추적 조회: https://api.ddoga.co.kr:4436/track/{carrier}/{trackerNumber}
 ### 2. 송장 최종 상태 조회: https://api.ddoga.co.kr:4436/track/last/{carrier}/{trackerNumber}
-### 3. 지원 택배사 목록 조회: http://localhost:4000/track/carriers
+### 3. 지원 택배사 목록 조회: https://api.ddoga.co.kr:4436/track/carriers
 
 ## 🚚 지원 택배사
 
@@ -91,6 +91,7 @@ docker ps
 ## 💡 추가 정보
 - **API 문서**: [tracker.delivery/docs](https://tracker.delivery/docs)
 - **CI/CD**: 오픈 소스를 `매주 화요일 02시`에 자동으로 동기화 하고, GitLab CI/CD를 활용하여 자동 배포됩니다.
+- **API KEY**: 발급 문의 (박종열 팀장)
 
 ## 📄 라이선스
 
