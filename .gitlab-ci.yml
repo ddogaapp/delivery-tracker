@@ -20,11 +20,19 @@ deploy_job:
     
   script:
     # 1. SSH 환경 설정
-    - apk update && apk add --no-cache openssh-client
-    - mkdir -p ~/.ssh 
-    - echo "$SSH_PRIVATE_KEY_DEV" > ~/.ssh/id_rsa
-    - chmod 600 ~/.ssh/id_rsa
-    - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
+    - echo "Loading SSH key and setting up SSH config..."
+    - apt-get update -qy && apt-get install -y openssl openssh-client
+    - corepack enable
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY_DEV" | base64 -d > ~/.ssh/brainhc_ltc.pem
+    - chmod 600 ~/.ssh/brainhc_ltc.pem
+    - printf "Host app-server\n  HostName ${APP_SERVER_IP}\n  User ${APP_SERVER_USER}\n  IdentityFile ~/.ssh/brainhc_ltc.pem\n  StrictHostKeyChecking no\n" > ~/.ssh/config
+
+    # - apk update && apk add --no-cache openssh-client
+    # - mkdir -p ~/.ssh 
+    # - echo "$SSH_PRIVATE_KEY_DEV" > ~/.ssh/id_rsa
+    # - chmod 600 ~/.ssh/id_rsa
+    # - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
 
     # 2. 빌드 및 푸시
     - echo "Docker Hub Login..."
@@ -38,14 +46,14 @@ deploy_job:
 
     # 3. 배포 (수정 포인트: 포트 4000 사용, IMAGE_TAG 사용)
     - echo "Deploying to EC2..."
-    - ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "
+    - ssh app-server "
         echo '$DOCKER_TOKEN' | docker login -u '$DOCKER_USER' --password-stdin &&
         docker pull $IMAGE_TAG &&
         docker stop ddoga-container || true &&
         docker rm ddoga-container || true &&
         docker run -d --name ddoga-container -p 80:4000 $IMAGE_TAG
       "
-    - echo "Deployment Successful!"    
+    - echo "Deployment Successful!" 
 
   only:
     - master # 브랜치명이 main인지 master인지 꼭 확인하세요!
