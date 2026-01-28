@@ -3,7 +3,7 @@ stages:
   - deploy
 
 variables:
-  IMAGE_TAG: jjongg1101/dddoga-tracker:$CI_COMMIT_SHORT_SHA
+  IMAGE_TAG: jjongg1101/ddoga-tracker:$CI_COMMIT_SHORT_SHA
   DOCKER_USER: "jjongg1101"
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: "" # TLS 비활성화 (2375 포트 연결 필수)
