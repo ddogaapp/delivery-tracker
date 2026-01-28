@@ -87,58 +87,113 @@ async function main(): Promise<void> {
   app.use(cors());
   app.use(json());
 
-  app.get("/health-check", async (req, res) => {
-    res.status(200).json({
-      message: "OK",
-    });
-  })
-
-  // 송장조회 API
+  // 송장 추적 조회
   app.get("/track/:carrierId/:trackingNumber", async (req, res) => {
     const { carrierId, trackingNumber } = req.params;
-    const carrier = carrierRegistry.get(carrierId);
+    console.log(`[GET] /track/${carrierId}/${trackingNumber} - start`)
 
-    if (!carrier) {
-      res.status(404).json({
-        error: "Carrier not found",
-        code: "NOT_FOUND",
-      });
-      return;
-    }
+    const variables = { carrierId, trackingNumber };
+    const start = Date.now();
 
-    try {
-      const trackInfo = await carrier.track({
-        trackingNumber,
-      });
-      res.json(trackInfo);
-    } catch (e) {
-      if (e instanceof errors.TrackError) {
-        res.status(e instanceof errors.InternalError ? 500 : 400).json({
-          error: e.message,
-          code: e.code,
-        });
-        return;
+    const response = await server.executeOperation(
+      {
+        query: `
+          query Track($carrierId: ID!, $trackingNumber: String!) {
+            track(carrierId: $carrierId, trackingNumber: $trackingNumber) {
+              lastEvent {
+                time
+                status {
+                  code
+                  name
+                }
+                description
+              }
+              events(last: 20) {
+                edges {
+                  node {
+                    time
+                    status {
+                      code
+                      name
+                    }
+                    description
+                  }
+                }
+              }
+            }
+          }
+        `,
+        variables
+      },
+      {
+        contextValue: { appContext },
       }
+    );
+    const duration = Date.now() - start;
+    console.log(`[GET] /track/${carrierId}/${trackingNumber} - ${duration}ms`)
 
-      serverRootLogger.error("rest track error", {
-        carrierId,
-        trackingNumber,
-        error: e,
-      });
-
-      res.status(500).json({
-        error: "Internal server error",
-        code: "INTERNAL",
-      });
+    const result = response.body;
+    if (result["kind"] === "single") {
+      res.json(result.singleResult);
+    } else {
+      res.json(result);
     }
   });
+
+  // 최종 상태 조회
+  app.get("/track/last/:carrierId/:trackingNumber", async (req, res) => {
+    const { carrierId, trackingNumber } = req.params;
+    console.log(`[GET] /track/last/${carrierId}/${trackingNumber} - start`)
+
+    const variables = { carrierId, trackingNumber };
+    const start = Date.now();
+
+    const response = await server.executeOperation(
+      {
+        query: `
+          query Track($carrierId: ID!, $trackingNumber: String!) {
+            track(carrierId: $carrierId, trackingNumber: $trackingNumber) {
+              lastEvent {
+                time
+                status {
+                  code
+                  name
+                }
+                description
+              }
+            }
+          }
+        `,
+        variables
+      },
+      {
+        contextValue: { appContext },
+      }
+    );
+    const duration = Date.now() - start;
+    console.log(`[GET] /track/last/${carrierId}/${trackingNumber} - ${duration}ms`)
+
+    const result = response.body;
+    if (result["kind"] === "single") {
+      res.json(result.singleResult);
+    } else {
+      res.json(result);
+    }
+  });
+
 
   // 택배사 목록 조회
   app.get("/track/carriers", async (req, res) => {
     const carriers = carrierRegistry.carriers
-      .filter((carrier) => carrier.carrierId.startsWith("kr"))
-      .map((carrier) => carrier.carrierId)
+      .filter(c => c.carrierId.startsWith("kr"))
+      .map(c => c.carrierId);
     res.json(carriers);
+  });
+
+  app.get("/health-check", async (req, res) => {
+    res.status(200).json({
+      message: "OK",
+    });
   });
 
   // GraphQL endpoint
