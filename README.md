@@ -90,6 +90,7 @@ docker ps
 
 ## 💡 추가 정보
 - **API 문서**: [tracker.delivery/docs](https://tracker.delivery/docs)
+- **CI/CD**: 오픈 소스를 `매주 화요일 02시`에 자동으로 동기화 하고, GitLab CI/CD를 활용하여 자동 배포됩니다.
 
 ## 📄 라이선스
 
