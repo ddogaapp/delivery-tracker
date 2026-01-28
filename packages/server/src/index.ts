@@ -20,7 +20,11 @@ const serverRootLogger: winston.Logger = coreLogger.rootLogger.child({
   module: "server",
 });
 
-const USABLE_KEYS = { "REDACTED": "REDACTED" }
+const USABLE_KEYS = {
+  "REDACTED": "REDACTED", // 관리자
+  "REDACTED": "REDACTED", // 또가 API
+  "REDACTED": "REDACTED", // IMS
+}
 
 const authMiddleware = (
   req: express.Request,
@@ -125,7 +129,8 @@ async function main(): Promise<void> {
   // 송장 추적 조회
   app.get("/track/:carrierId/:trackingNumber", async (req, res) => {
     const { carrierId, trackingNumber } = req.params;
-    console.log(`[GET] /track/${carrierId}/${trackingNumber} - start`)
+    const clientId = req.headers["ddoga-tracker-api-key"]
+    console.log(`[${clientId}] /track/${carrierId}/${trackingNumber} - start`)
 
     const variables = { carrierId, trackingNumber };
     const start = Date.now();
@@ -165,7 +170,7 @@ async function main(): Promise<void> {
       }
     );
     const duration = Date.now() - start;
-    console.log(`[GET] /track/${carrierId}/${trackingNumber} - ${duration}ms`)
+    console.log(`[${clientId}] /track/${carrierId}/${trackingNumber} - ${duration}ms`)
 
     const result = response.body;
     if (result["kind"] === "single") {
@@ -178,7 +183,8 @@ async function main(): Promise<void> {
   // 최종 상태 조회
   app.get("/track/last/:carrierId/:trackingNumber", async (req, res) => {
     const { carrierId, trackingNumber } = req.params;
-    console.log(`[GET] /track/last/${carrierId}/${trackingNumber} - start`)
+    const clientId = req.headers["ddoga-tracker-api-key"]
+    console.log(`[${clientId}] /track/last/${carrierId}/${trackingNumber} - start`)
 
     const variables = { carrierId, trackingNumber };
     const start = Date.now();
@@ -206,7 +212,7 @@ async function main(): Promise<void> {
       }
     );
     const duration = Date.now() - start;
-    console.log(`[GET] /track/last/${carrierId}/${trackingNumber} - ${duration}ms`)
+    console.log(`[${clientId}] /track/last/${carrierId}/${trackingNumber} - ${duration}ms`)
 
     const result = response.body;
     if (result["kind"] === "single") {
@@ -219,6 +225,8 @@ async function main(): Promise<void> {
 
   // 택배사 목록 조회
   app.get("/track/carriers", async (req, res) => {
+    const clientId = req.headers["ddoga-tracker-api-key"]
+    console.log(`[${clientId}] /track/carriers`)
     const carriers = carrierRegistry.carriers
       .filter(c => c.carrierId.startsWith("kr"))
       .map(c => c.carrierId);
@@ -226,14 +234,11 @@ async function main(): Promise<void> {
   });
 
   // GraphQL endpoint
-  app.use(
-    "/graphql",
-    expressMiddleware(server, {
-      context: async ({ req }) => ({
-        appContext,
-      }),
-    })
-  );
+  app.use("/graphql", expressMiddleware(server, {
+    context: async ({ req }) => ({
+      appContext,
+    }),
+  }));
 
   const PORT = process.env.PORT || 4000;
   app.listen(PORT, () => {
