@@ -3,7 +3,7 @@ stages:
   - deploy
 
 variables:
-  IMAGE_TAG: jjongg1101/ddoga-tracker:$CI_COMMIT_SHORT_SHA
+  IMAGE_TAG: jjongg1101/ddoga-tracker:$CI_PIPELINE_ID
   DOCKER_USER: "jjongg1101"
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
