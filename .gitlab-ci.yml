@@ -5,9 +5,10 @@ stages:
 variables:
   IMAGE_TAG: jjongg1101/ddoga-tracker:$CI_COMMIT_SHORT_SHA
   DOCKER_USER: "jjongg1101"
-  DOCKER_HOST: tcp://docker:2375
-  DOCKER_TLS_CERTDIR: "" # TLS 비활성화 (2375 포트 연결 필수)
-  
+  # DOCKER_HOST: tcp://docker:2375
+  # DOCKER_TLS_CERTDIR: ""
+  # DOCKER_BUILDKIT: "1"
+
 deploy_job:
   stage: deploy
   image: docker:20.10.16
@@ -15,37 +16,27 @@ deploy_job:
     - docker:20.10.16-dind
   
   variables:
-    EC2_HOST: "REDACTED_IP"
-    EC2_USER: "ubuntu"
-    DOCKER_BUILDKIT: "1"
-    
-  script:
-    # 1. SSH 환경 설정
+    APP_SERVER_USER: "ubuntu"     
+  
+  before_script:
+    # 1. SSH 환경 설정 (app-server)
     - echo "Loading SSH key and setting up SSH config..."
     - apt-get update -qy && apt-get install -y openssl openssh-client
     - mkdir -p ~/.ssh
-    - echo "$SSH_PRIVATE_KEY_DEV" | base64 -d > ~/.ssh/brainhc_ltc.pem
+    - echo "$SSH_PRIVATE_KEY_PROD" | base64 -d > ~/.ssh/brainhc_ltc.pem
     - chmod 600 ~/.ssh/brainhc_ltc.pem
-    - printf "Host app-server\n  HostName ${EC2_HOST}\n  User ${EC2_USER}\n  IdentityFile ~/.ssh/brainhc_ltc.pem\n  StrictHostKeyChecking no\n" > ~/.ssh/config
+    - printf "Host bastion\n  HostName ${BASTION_HOST}\n  Port ${BASTION_PORT}\n  User ${BASTION_USER}\n  IdentityFile ~/.ssh/brainhc_ltc.pem\n  ForwardAgent yes\n  StrictHostKeyChecking no\n\nHost app-server\n  HostName ${APP_SERVER_IP}\n  User ${APP_SERVER_USER}\n  IdentityFile ~/.ssh/brainhc_ltc.pem\n  ProxyJump bastion\n  StrictHostKeyChecking no\n" > ~/.ssh/config
 
-    # - apk update && apk add --no-cache openssh-client
-    # - mkdir -p ~/.ssh 
-    # - echo "$SSH_PRIVATE_KEY_DEV" > ~/.ssh/id_rsa
-    # - chmod 600 ~/.ssh/id_rsa
-    # - ssh-keyscan -H $EC2_HOST >> ~/.ssh/known_hosts
-
+  script:
     # 2. 빌드 및 푸시
     - echo "Docker Hub Login..."
     - echo "$DOCKER_TOKEN" | docker login -u "$DOCKER_USER" --password-stdin
-
     - echo "Building image... $IMAGE_TAG"
-    # - docker build -t $IMAGE_TAG .
     - docker build --platform linux/arm64 -t $IMAGE_TAG .
-
     - echo "Pushing image..."
     - docker push $IMAGE_TAG
 
-    # 3. 배포 (수정 포인트: 포트 4000 사용, IMAGE_TAG 사용)
+    # 3. 배포
     - echo "Deploying to EC2..."
     - ssh app-server "
         echo '$DOCKER_TOKEN' | docker login -u '$DOCKER_USER' --password-stdin &&
@@ -57,4 +48,4 @@ deploy_job:
     - echo "Deployment Successful!" 
 
   only:
-    - master # 브랜치명이 main인지 master인지 꼭 확인하세요!
+    - master
