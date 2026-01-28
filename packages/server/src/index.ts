@@ -1,6 +1,6 @@
 import type * as winston from "winston";
 import { ApolloServer } from "@apollo/server";
-import { expressMiddleware } from "@apollo/server/express4";
+import { startStandaloneServer } from "@apollo/server/standalone";
 import {
   ApolloServerErrorCode,
   unwrapResolverError,
@@ -9,18 +9,14 @@ import { typeDefs, resolvers, type AppContext } from "@delivery-tracker/api";
 import {
   DefaultCarrierRegistry,
   logger as coreLogger,
-  errors,
 } from "@delivery-tracker/core";
 import { initLogger } from "./logger";
-import express from "express";
-import cors from "cors";
-import { json } from "body-parser";
 
 const serverRootLogger: winston.Logger = coreLogger.rootLogger.child({
   module: "server",
 });
 
-const server = new ApolloServer<{ appContext: AppContext }>({
+const server = new ApolloServer({
   typeDefs,
   resolvers: resolvers.resolvers,
   formatError: (formattedError, error) => {
@@ -74,7 +70,6 @@ const server = new ApolloServer<{ appContext: AppContext }>({
 });
 
 async function main(): Promise<void> {
-  const app = express();
   const carrierRegistry = new DefaultCarrierRegistry();
   await carrierRegistry.init();
 
@@ -82,65 +77,12 @@ async function main(): Promise<void> {
     carrierRegistry,
   };
 
-  await server.start();
-
-  app.use(cors());
-  app.use(json());
-
-  // REST API endpoint
-  app.get("/track/:carrierId/:trackingNumber", async (req, res) => {
-    const { carrierId, trackingNumber } = req.params;
-    const carrier = carrierRegistry.get(carrierId);
-
-    if (!carrier) {
-      res.status(404).json({
-        error: "Carrier not found",
-        code: "NOT_FOUND",
-      });
-      return;
-    }
-
-    try {
-      const trackInfo = await carrier.track({
-        trackingNumber,
-      });
-      res.json(trackInfo);
-    } catch (e) {
-      if (e instanceof errors.TrackError) {
-        res.status(e instanceof errors.InternalError ? 500 : 400).json({
-          error: e.message,
-          code: e.code,
-        });
-        return;
-      }
-
-      serverRootLogger.error("rest track error", {
-        carrierId,
-        trackingNumber,
-        error: e,
-      });
-
-      res.status(500).json({
-        error: "Internal server error",
-        code: "INTERNAL",
-      });
-    }
+  const { url } = await startStandaloneServer(server, {
+    context: async ({ req, res }) => ({
+      appContext,
+    }),
   });
-
-  // GraphQL endpoint
-  // app.use(
-  //   "/graphql",
-  //   expressMiddleware(server, {
-  //     context: async ({ req }) => ({
-  //       appContext,
-  //     }),
-  //   })
-  // );
-
-  const PORT = process.env.PORT || 4000;
-  app.listen(PORT, () => {
-    serverRootLogger.info(`🚀 Server ready at http://localhost:${PORT}`);
-  });
+  serverRootLogger.info(`🚀 Server ready at ${url}`);
 }
 
 initLogger();
