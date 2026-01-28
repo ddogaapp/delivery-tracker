@@ -93,7 +93,7 @@ async function main(): Promise<void> {
     });
   })
 
-  // REST API endpoint
+  // 송장조회 API
   app.get("/track/:carrierId/:trackingNumber", async (req, res) => {
     const { carrierId, trackingNumber } = req.params;
     const carrier = carrierRegistry.get(carrierId);
@@ -133,15 +133,23 @@ async function main(): Promise<void> {
     }
   });
 
+  // 택배사 목록 조회
+  app.get("/track/carriers", async (req, res) => {
+    const carriers = carrierRegistry.carriers
+      .filter((carrier) => carrier.carrierId.startsWith("kr"))
+      .map((carrier) => carrier.carrierId)
+    res.json(carriers);
+  });
+
   // GraphQL endpoint
-  // app.use(
-  //   "/graphql",
-  //   expressMiddleware(server, {
-  //     context: async ({ req }) => ({
-  //       appContext,
-  //     }),
-  //   })
-  // );
+  app.use(
+    "/graphql",
+    expressMiddleware(server, {
+      context: async ({ req }) => ({
+        appContext,
+      }),
+    })
+  );
 
   const PORT = process.env.PORT || 4000;
   app.listen(PORT, () => {
