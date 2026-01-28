@@ -50,7 +50,7 @@ deploy_job:
         docker pull $IMAGE_TAG &&
         docker stop ddoga-container || true &&
         docker rm ddoga-container || true &&
-        docker run -d --name ddoga-container -p 80:4000 $IMAGE_TAG
+        docker run -d --name ddoga-container -p 8000:4000 $IMAGE_TAG
       "
     - echo "Deployment Successful!" 
 
