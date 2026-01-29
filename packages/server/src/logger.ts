@@ -4,6 +4,7 @@ import { DateTime } from "luxon";
 
 function initLogger(): void {
   coreLogger.rootLogger.format = winston.format.combine(
+    winston.format.timestamp(),
     winston.format.json({
       replacer: (key, value) => {
         // luxon

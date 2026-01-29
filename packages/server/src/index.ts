@@ -9,7 +9,6 @@ import { typeDefs, resolvers, type AppContext } from "@delivery-tracker/api";
 import {
   DefaultCarrierRegistry,
   logger as coreLogger,
-  errors,
 } from "@delivery-tracker/core";
 import { initLogger } from "./logger";
 import express from "express";
@@ -20,10 +19,15 @@ const serverRootLogger: winston.Logger = coreLogger.rootLogger.child({
   module: "server",
 });
 
-const USABLE_KEYS = {
-  "REDACTED": "REDACTED", // 관리자
-  "REDACTED": "REDACTED", // 또가 API
-  "REDACTED": "REDACTED", // IMS
+const USABLE_KEYS = [
+  { clientId: 'REDACTED', clientSecret: 'REDACTED', name: 'ADMIN' },
+  { clientId: 'REDACTED', clientSecret: 'REDACTED', name: 'API' },
+  { clientId: 'REDACTED', clientSecret: 'REDACTED', name: 'IMS' },
+]
+
+const callerName = (headers: any) => {
+  const clientId = headers["ddoga-tracker-api-key"] as string;
+  return USABLE_KEYS.find((key) => key.clientId === clientId)?.name;
 }
 
 const authMiddleware = (
@@ -31,14 +35,12 @@ const authMiddleware = (
   res: express.Response,
   next: express.NextFunction
 ) => {
-  const apiKey = req.headers["ddoga-tracker-api-key"];
-  const apiSecret = req.headers["ddoga-tracker-api-secret"];
+  const apiKey = req.headers["ddoga-tracker-api-key"] as string;
+  const apiSecret = req.headers["ddoga-tracker-api-secret"] as string;
 
-  if (
-    typeof apiKey !== "string" ||
-    typeof apiSecret !== "string" ||
-    (USABLE_KEYS as Record<string, string>)[apiKey] !== apiSecret
-  ) {
+  const authorized = USABLE_KEYS.find((key) => key.clientId === apiKey && key.clientSecret === apiSecret);
+
+  if (!authorized) {
     res.status(401).json({
       extensions: {
         code: "UNAUTHENTICATED",
@@ -129,8 +131,7 @@ async function main(): Promise<void> {
   // 송장 추적 조회
   app.get("/track/:carrierId/:trackingNumber", async (req, res) => {
     const { carrierId, trackingNumber } = req.params;
-    const clientId = req.headers["ddoga-tracker-api-key"]
-    console.log(`[${clientId}] /track/${carrierId}/${trackingNumber} - start`)
+    serverRootLogger.info(`[${callerName(req.headers)}] /track/${carrierId}/${trackingNumber} - start`)
 
     const variables = { carrierId, trackingNumber };
     const start = Date.now();
@@ -170,7 +171,7 @@ async function main(): Promise<void> {
       }
     );
     const duration = Date.now() - start;
-    console.log(`[${clientId}] /track/${carrierId}/${trackingNumber} - ${duration}ms`)
+    serverRootLogger.info(`[${callerName(req.headers)}] /track/${carrierId}/${trackingNumber} - ${duration}ms`)
 
     const result = response.body;
     if (result["kind"] === "single") {
@@ -183,8 +184,7 @@ async function main(): Promise<void> {
   // 최종 상태 조회
   app.get("/track/last/:carrierId/:trackingNumber", async (req, res) => {
     const { carrierId, trackingNumber } = req.params;
-    const clientId = req.headers["ddoga-tracker-api-key"]
-    console.log(`[${clientId}] /track/last/${carrierId}/${trackingNumber} - start`)
+    serverRootLogger.info(`[${callerName(req.headers)}] /track/last/${carrierId}/${trackingNumber} - start`)
 
     const variables = { carrierId, trackingNumber };
     const start = Date.now();
@@ -212,7 +212,7 @@ async function main(): Promise<void> {
       }
     );
     const duration = Date.now() - start;
-    console.log(`[${clientId}] /track/last/${carrierId}/${trackingNumber} - ${duration}ms`)
+    serverRootLogger.info(`[${callerName(req.headers)}] /track/last/${carrierId}/${trackingNumber} - ${duration}ms`)
 
     const result = response.body;
     if (result["kind"] === "single") {
@@ -225,8 +225,7 @@ async function main(): Promise<void> {
 
   // 택배사 목록 조회
   app.get("/track/carriers", async (req, res) => {
-    const clientId = req.headers["ddoga-tracker-api-key"]
-    console.log(`[${clientId}] /track/carriers`)
+    serverRootLogger.info(`[${callerName(req.headers)}] /track/carriers`)
     const carriers = carrierRegistry.carriers
       .filter(c => c.carrierId.startsWith("kr"))
       .map(c => c.carrierId);
