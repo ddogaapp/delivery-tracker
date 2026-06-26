@@ -5,9 +5,9 @@ stages:
 variables:
   IMAGE_TAG: jjongg1101/ddoga-tracker:$CI_PIPELINE_ID
   DOCKER_USER: "jjongg1101"
-  DOCKER_HOST: tcp://docker:2375
-  DOCKER_TLS_CERTDIR: ""
-  DOCKER_BUILDKIT: "1"
+  # DOCKER_HOST: tcp://docker:2375
+  # DOCKER_TLS_CERTDIR: ""
+  # DOCKER_BUILDKIT: "1"
 
 sync-with-github:
   stage: sync
@@ -37,8 +37,8 @@ sync-with-github:
 deploy_job:
   stage: deploy
   image: docker:20.10.16
-  services:
-    - docker:20.10.16-dind
+  # services:
+    # - docker:20.10.16-dind
   
   variables:
     APP_SERVER_USER: "ubuntu"     
