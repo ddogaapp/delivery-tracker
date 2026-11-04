@@ -1,0 +1,70 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm install -g pnpm@8
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @delivery-tracker/server build-with-deps
+      - name: Create bundle
+        run: |
+          pnpm --filter @delivery-tracker/server --prod deploy "$RUNNER_TEMP/bundle"
+          cp LICENSE deploy/ecosystem.config.js "$RUNNER_TEMP/bundle/"
+          tar -czf "$RUNNER_TEMP/delivery-tracker.tar.gz" -C "$RUNNER_TEMP/bundle" .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: delivery-tracker
+          path: ${{ runner.temp }}/delivery-tracker.tar.gz
+          retention-days: 7
+
+  deploy:
+    needs: build
+    runs-on: [self-hosted, linux, delivery-tracker]
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: delivery-tracker
+      - name: Switch release
+        run: |
+          # Keep the runner from killing a PM2 daemon started by this job
+          export RUNNER_TRACKING_ID=""
+
+          # A health check would otherwise pass against another process on the port
+          LISTENER=$(ss -ltnpH 'sport = :9000')
+          if [ -n "$LISTENER" ] && ! grep -qF "pid=$(pm2 pid delivery-tracker | tail -n 1)," <<< "$LISTENER"; then
+            echo "::error::Port 9000 is in use by a process other than PM2"
+            exit 1
+          fi
+
+          RELEASE="/opt/delivery-tracker/releases/$GITHUB_SHA"
+          mkdir -p "$RELEASE"
+          tar -xzf delivery-tracker.tar.gz -C "$RELEASE"
+          ln -sfn "$RELEASE" /opt/delivery-tracker/current
+          pm2 startOrReload /opt/delivery-tracker/current/ecosystem.config.js --update-env
+      - name: Health check
+        run: |
+          curl -fsS --retry 10 --retry-connrefused --retry-delay 2 \
+            http://localhost:9000 \
+            -H 'Content-Type: application/json' \
+            -d '{"query":"{ carriers(first: 1) { edges { node { id } } } }"}'
+      - name: Save PM2 process list
+        run: RUNNER_TRACKING_ID="" pm2 save
+      - name: Remove old releases
+        run: ls -1dt /opt/delivery-tracker/releases/* | tail -n +6 | xargs -r rm -rf

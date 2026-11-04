@@ -78,6 +78,7 @@ async function main(): Promise<void> {
   };
 
   const { url } = await startStandaloneServer(server, {
+    listen: { port: Number(process.env.PORT ?? 4000) },
     context: async ({ req, res }) => ({
       appContext,
     }),
