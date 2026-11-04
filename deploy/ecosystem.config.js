@@ -16,7 +16,7 @@ module.exports = {
       max_memory_restart: "1G",
       env: {
         NODE_ENV: "production",
-        PORT: process.env.PORT || 9000,
+        PORT: process.env.PORT || 8000,
       },
     },
   ],

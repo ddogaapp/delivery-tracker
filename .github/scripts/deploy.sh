@@ -11,13 +11,13 @@
 # Required environment variables
 #   DEPLOY_PATH   Deployment root (e.g. /home/ubuntu/apps/delivery-tracker)
 # Optional environment variables
-#   APP_NAME (delivery-tracker), PORT (9000), KEEP_RELEASES (3)
+#   APP_NAME (delivery-tracker), PORT (8000), KEEP_RELEASES (3)
 set -Eeuo pipefail
 
 BUNDLE="${1:?Bundle path is required}"
 : "${DEPLOY_PATH:?DEPLOY_PATH is required}"
 export APP_NAME="${APP_NAME:-delivery-tracker}"
-export PORT="${PORT:-9000}"
+export PORT="${PORT:-8000}"
 export DEPLOY_PATH
 KEEP_RELEASES="${KEEP_RELEASES:-3}"
 
