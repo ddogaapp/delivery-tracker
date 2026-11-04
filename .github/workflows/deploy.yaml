@@ -25,9 +25,10 @@ jobs:
       - run: pnpm --filter @delivery-tracker/server build-with-deps
       - name: Create bundle
         run: |
-          pnpm --filter @delivery-tracker/server --prod deploy "$RUNNER_TEMP/bundle"
-          cp LICENSE deploy/ecosystem.config.js "$RUNNER_TEMP/bundle/"
-          tar -czf "$RUNNER_TEMP/delivery-tracker.tar.gz" -C "$RUNNER_TEMP/bundle" .
+          # pnpm 8 miscalculates its paths when the target is outside the workspace
+          pnpm --filter @delivery-tracker/server --prod deploy "$GITHUB_WORKSPACE/.bundle"
+          cp LICENSE deploy/ecosystem.config.js .bundle/
+          tar -czf "$RUNNER_TEMP/delivery-tracker.tar.gz" -C .bundle .
       - uses: actions/upload-artifact@v4
         with:
           name: delivery-tracker
